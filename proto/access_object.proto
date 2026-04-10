@@ -1,0 +1,286 @@
+syntax = "proto3";
+
+package iam.v1;
+
+option go_package = "temp/gen/pb/v1;pb";
+
+import "common.proto";
+import "google/protobuf/timestamp.proto";
+
+// ─── Объект доступа ───
+
+message AccessObject {
+  string                       uid          = 1;
+  Environment                  environment  = 2;
+  repeated Resource            resources    = 3;
+  repeated Role                roles        = 4;
+  Lifecycle                    lifecycle    = 5;
+}
+
+// ─── Окружение ───
+
+message Environment {
+  string                       uid          = 1;
+  string                       system_id    = 2;
+  string                       name         = 3;
+  string                       display_name = 4;
+  string                       description  = 5;
+  map<string, string>          attributes   = 6;
+  Source                       source       = 7;
+}
+
+// ─── Ресурс ───
+
+message Resource {
+  string                       uid             = 1;
+  string                       environment_uid = 2;
+  string                       parent_uid      = 3;
+  string                       resource_type   = 4;
+  string                       name            = 5;
+  string                       display_name    = 6;
+  string                       description     = 7;
+  string                       path            = 8;
+  map<string, string>          attributes      = 9;
+  Source                       source          = 10;
+  repeated Resource            children        = 11;
+}
+
+// ─── Роль ───
+
+message Role {
+  string                       uid           = 1;
+  repeated string              resource_uids = 2;
+  string                       name          = 3;
+  string                       display_name  = 4;
+  string                       description   = 5;
+  repeated string              permissions   = 6;
+  map<string, string>          attributes    = 7;
+  Labels                       labels        = 8;
+  repeated Role                children      = 9;
+  Source                       source        = 10;
+}
+
+// ═══════════════════════════════════════════════════════════════
+// Сервис объектов доступа
+// ═══════════════════════════════════════════════════════════════
+
+service AccessObjectService {
+  rpc CreateAccessObject  (CreateAccessObjectRequest)  returns (AccessObject);
+  rpc GetAccessObject     (GetAccessObjectRequest)     returns (AccessObject);
+  rpc ListAccessObjects   (ListAccessObjectsRequest)   returns (ListAccessObjectsResponse);
+  rpc UpdateEnvironment   (UpdateEnvironmentRequest)   returns (AccessObject);
+  rpc DeleteAccessObject  (DeleteAccessObjectRequest)  returns (DeleteAccessObjectResponse);
+  rpc SearchAccessObjects (SearchAccessObjectsRequest) returns (SearchAccessObjectsResponse);
+}
+
+// ═══════════════════════════════════════════════════════════════
+// Сервис ресурсов
+// ═══════════════════════════════════════════════════════════════
+
+service ResourceService {
+  rpc AddResource    (AddResourceRequest)    returns (Resource);
+  rpc GetResource    (GetResourceRequest)    returns (Resource);
+  rpc ListResources  (ListResourcesRequest)  returns (ListResourcesResponse);
+  rpc UpdateResource (UpdateResourceRequest) returns (Resource);
+  rpc RemoveResource (RemoveResourceRequest) returns (RemoveResourceResponse);
+  rpc GetSubtree     (GetSubtreeRequest)     returns (GetSubtreeResponse);
+}
+
+// ═══════════════════════════════════════════════════════════════
+// Сервис ролей
+// ═══════════════════════════════════════════════════════════════
+
+service RoleService {
+  rpc AddRole      (AddRoleRequest)      returns (Role);
+  rpc GetRole      (GetRoleRequest)      returns (Role);
+  rpc ListRoles    (ListRolesRequest)    returns (ListRolesResponse);
+  rpc UpdateRole   (UpdateRoleRequest)   returns (Role);
+  rpc RemoveRole   (RemoveRoleRequest)   returns (RemoveRoleResponse);
+  rpc AddChildRole (AddChildRoleRequest) returns (Role);
+}
+
+// ═══════════════════════════════════════════════════════════════
+// Request / Response — AccessObject
+// ═══════════════════════════════════════════════════════════════
+
+message CreateAccessObjectRequest {
+  string                       system_id          = 1;
+  string                       environment_name   = 2;
+  string                       display_name       = 3;
+  string                       description        = 4;
+  map<string, string>          attributes         = 5;
+  repeated CreateResourceInput resources          = 6;
+  repeated CreateRoleInput     roles              = 7;
+}
+
+message CreateResourceInput {
+  string                       temp_id         = 1;
+  string                       parent_temp_id  = 2;
+  string                       resource_type   = 3;
+  string                       name            = 4;
+  string                       display_name    = 5;
+  string                       description     = 6;
+  map<string, string>          attributes      = 7;
+}
+
+message CreateRoleInput {
+  repeated string              resource_temp_ids = 1;
+  string                       name              = 2;
+  string                       display_name      = 3;
+  string                       description       = 4;
+  repeated string              permissions       = 5;
+  map<string, string>          attributes        = 6;
+  Labels                       labels            = 7;
+  repeated CreateRoleInput     children          = 8;
+}
+
+message GetAccessObjectRequest {
+  string uid = 1;
+}
+
+message ListAccessObjectsRequest {
+  string      system_id = 1;
+  string      status    = 2;
+  PageRequest page      = 3;
+}
+
+message ListAccessObjectsResponse {
+  repeated AccessObject access_objects = 1;
+  PageResponse          page           = 2;
+}
+
+message UpdateEnvironmentRequest {
+  string                       access_object_uid = 1;
+  string                       display_name      = 2;
+  string                       description       = 3;
+  map<string, string>          attributes        = 4;
+}
+
+message DeleteAccessObjectRequest {
+  string uid = 1;
+}
+
+message DeleteAccessObjectResponse {}
+
+message SearchAccessObjectsRequest {
+  string      query          = 1;
+  string      system_id      = 2;
+  string      resource_type  = 3;
+  string      status         = 4;
+  PageRequest page           = 5;
+}
+
+message SearchAccessObjectsResponse {
+  repeated AccessObject access_objects = 1;
+  PageResponse          page           = 2;
+}
+
+// ═══════════════════════════════════════════════════════════════
+// Request / Response — Resource
+// ═══════════════════════════════════════════════════════════════
+
+message AddResourceRequest {
+  string                       access_object_uid = 1;
+  string                       parent_uid        = 2;
+  string                       resource_type     = 3;
+  string                       name              = 4;
+  string                       display_name      = 5;
+  string                       description       = 6;
+  map<string, string>          attributes        = 7;
+}
+
+message GetResourceRequest {
+  string uid = 1;
+}
+
+message ListResourcesRequest {
+  string      access_object_uid = 1;
+  string      parent_uid        = 2;
+  string      resource_type     = 3;
+  PageRequest page              = 4;
+}
+
+message ListResourcesResponse {
+  repeated Resource resources = 1;
+  PageResponse      page      = 2;
+}
+
+message UpdateResourceRequest {
+  string                       uid          = 1;
+  string                       display_name = 2;
+  string                       description  = 3;
+  map<string, string>          attributes   = 4;
+}
+
+message RemoveResourceRequest {
+  string uid = 1;
+}
+
+message RemoveResourceResponse {}
+
+message GetSubtreeRequest {
+  string uid       = 1;
+  int32  max_depth = 2;
+}
+
+message GetSubtreeResponse {
+  Resource          root     = 1;
+  repeated Resource children = 2;
+}
+
+// ═══════════════════════════════════════════════════════════════
+// Request / Response — Role
+// ═══════════════════════════════════════════════════════════════
+
+message AddRoleRequest {
+  string                       access_object_uid = 1;
+  repeated string              resource_uids     = 2;
+  string                       name              = 3;
+  string                       display_name      = 4;
+  string                       description       = 5;
+  repeated string              permissions       = 6;
+  map<string, string>          attributes        = 7;
+  Labels                       labels            = 8;
+}
+
+message GetRoleRequest {
+  string uid = 1;
+}
+
+message ListRolesRequest {
+  string      access_object_uid = 1;
+  string      resource_uid      = 2;
+  PageRequest page              = 3;
+}
+
+message ListRolesResponse {
+  repeated Role  roles = 1;
+  PageResponse   page  = 2;
+}
+
+message UpdateRoleRequest {
+  string                       uid           = 1;
+  repeated string              resource_uids = 2;
+  string                       display_name  = 3;
+  string                       description   = 4;
+  repeated string              permissions   = 5;
+  map<string, string>          attributes    = 6;
+  Labels                       labels        = 7;
+}
+
+message RemoveRoleRequest {
+  string uid = 1;
+}
+
+message RemoveRoleResponse {}
+
+message AddChildRoleRequest {
+  string                       parent_role_uid   = 1;
+  repeated string              resource_uids     = 2;
+  string                       name              = 3;
+  string                       display_name      = 4;
+  string                       description       = 5;
+  repeated string              permissions       = 6;
+  map<string, string>          attributes        = 7;
+  Labels                       labels            = 8;
+}

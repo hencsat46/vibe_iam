@@ -1,0 +1,56 @@
+syntax = "proto3";
+
+package iam.v1;
+
+option go_package = "temp/gen/pb/v1;pb";
+
+import "google/protobuf/timestamp.proto";
+
+// ─── Жизненный цикл объекта доступа ───
+
+enum LifecycleStatus {
+  LIFECYCLE_STATUS_UNSPECIFIED = 0;
+  LIFECYCLE_STATUS_DRAFT       = 1;
+  LIFECYCLE_STATUS_REVIEW      = 2;
+  LIFECYCLE_STATUS_PUBLISHED   = 3;
+  LIFECYCLE_STATUS_RETIRED     = 4;
+}
+
+message Lifecycle {
+  LifecycleStatus              status       = 1;
+  int32                        version      = 2;
+  google.protobuf.Timestamp    created_at   = 3;
+  google.protobuf.Timestamp    updated_at   = 4;
+  google.protobuf.Timestamp    published_at = 5;
+  google.protobuf.Timestamp    retired_at   = 6;
+}
+
+// ─── Источник данных ───
+
+message Source {
+  string                       provider       = 1;
+  string                       external_id    = 2;
+  google.protobuf.Timestamp    last_synced_at = 3;
+}
+
+// ─── ABAC-метки ───
+
+message Labels {
+  map<string, StringList> entries = 1;
+}
+
+message StringList {
+  repeated string values = 1;
+}
+
+// ─── Пагинация ───
+
+message PageRequest {
+  int32  page_size   = 1;
+  string page_token  = 2;
+}
+
+message PageResponse {
+  string next_page_token = 1;
+  int32  total_count     = 2;
+}
