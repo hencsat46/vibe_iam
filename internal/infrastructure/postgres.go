@@ -5,27 +5,11 @@ import (
 	"fmt"
 
 	"github.com/jackc/pgx/v5/pgxpool"
+
+	"temp/internal/pkg/config"
 )
 
-type Config struct {
-	Host     string
-	Port     int
-	User     string
-	Password string
-	DBName   string
-	SSLMode  string
-}
-
-func (c Config) DSN() string {
-	ssl := c.SSLMode
-	if ssl == "" {
-		ssl = "disable"
-	}
-	return fmt.Sprintf("postgres://%s:%s@%s:%d/%s?sslmode=%s",
-		c.User, c.Password, c.Host, c.Port, c.DBName, ssl)
-}
-
-func NewPostgresPool(ctx context.Context, cfg Config) (*pgxpool.Pool, error) {
+func NewPostgresPool(ctx context.Context, cfg config.DBConfig) (*pgxpool.Pool, error) {
 	pool, err := pgxpool.New(ctx, cfg.DSN())
 	if err != nil {
 		return nil, fmt.Errorf("create pool: %w", err)

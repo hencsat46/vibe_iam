@@ -1,4 +1,4 @@
-.PHONY: proto build run test lint docker-up docker-down
+.PHONY: proto build run test lint docker-up docker-down migration
 
 # ─── Proto generation ───────────────────────────────────────────
 # Requires: buf (https://buf.build/docs/installation)
@@ -27,6 +27,14 @@ lint:
 # ─── Test ───────────────────────────────────────────────────────
 test:
 	go test ./... -count=1
+
+up:
+	goose -dir migrations postgres "host=localhost user=postgres password=postgres dbname=iam sslmode=disable" up
+down:
+	goose -dir migrations postgres "host=localhost user=postgres password=postgres dbname=iam sslmode=disable" down
+
+migration:
+	goose -dir ./migrations create $(filter-out $@, $(MAKECMDGOALS)) sql
 
 # ─── gRPC UI (grpcurl examples) ─────────────────────────────────
 # grpcurl -plaintext -d '{"system_id":"my-system","environment_name":"prod"}' \
