@@ -5,10 +5,10 @@ import (
 	"regexp"
 	"strings"
 
-	"github.com/google/uuid"
 	"go.uber.org/zap"
 
 	"temp/internal/domain"
+	"temp/internal/pkg/uid"
 )
 
 var nonLtreeChar = regexp.MustCompile(`[^a-zA-Z0-9_]`)
@@ -48,7 +48,7 @@ func (s *service) Add(ctx context.Context, r *domain.Resource) (*domain.Resource
 		path = parentPath + "." + sanitizeLtree(r.Name)
 	}
 
-	r.UID = uuid.New().String()
+	r.UID = uid.New(uid.TypeResource, ao.Environment.SystemID, ao.Environment.Name)
 	r.Path = path
 
 	if err := s.postgres.Add(ctx, r); err != nil {

@@ -4,10 +4,10 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/google/uuid"
 	"go.uber.org/zap"
 
 	"temp/internal/domain"
+	"temp/internal/pkg/uid"
 )
 
 func (s *service) Add(ctx context.Context, r *domain.Role) (*domain.Role, error) {
@@ -29,7 +29,7 @@ func (s *service) Add(ctx context.Context, r *domain.Role) (*domain.Role, error)
 		return nil, err
 	}
 
-	r.UID = uuid.New().String()
+	r.UID = uid.New(uid.TypeRole, ao.Environment.SystemID, ao.Environment.Name)
 
 	if err := s.postgres.Add(ctx, r); err != nil {
 		logger.Error("couldn't add role", zap.Error(err))
@@ -151,7 +151,7 @@ func (s *service) AddChild(ctx context.Context, parentRoleUID string, r *domain.
 		return nil, err
 	}
 
-	r.UID = uuid.New().String()
+	r.UID = uid.New(uid.TypeRole, ao.Environment.SystemID, ao.Environment.Name)
 	r.AccessObjectUID = parent.AccessObjectUID
 	r.ParentRoleUID = parentRoleUID
 

@@ -6,19 +6,19 @@ import (
 	"regexp"
 	"strings"
 
-	"github.com/google/uuid"
 	"go.uber.org/zap"
 
 	accessobject "temp/internal/access_object"
 	"temp/internal/domain"
+	"temp/internal/pkg/uid"
 )
 
 func (s *service) Create(ctx context.Context, req *accessobject.CreateRequest) (*domain.AccessObject, error) {
 	logger := s.logger.WithMethod("Create")
 	logger.Info("Entering...")
 
-	aoUID := uuid.New().String()
-	envUID := uuid.New().String()
+	aoUID := uid.New(uid.TypeAccessObject, req.SystemID, req.EnvironmentName)
+	envUID := uid.New(uid.TypeEnvironment, req.SystemID, req.EnvironmentName)
 
 	ao := &domain.AccessObject{
 		UID: aoUID,
@@ -42,11 +42,11 @@ func (s *service) Create(ctx context.Context, req *accessobject.CreateRequest) (
 	}
 
 	tempToUID := map[string]string{}
-	if err := s.createResources(ctx, aoUID, req.Resources, tempToUID); err != nil {
+	if err := s.createResources(ctx, aoUID, req.SystemID, req.EnvironmentName, req.Resources, tempToUID); err != nil {
 		logger.Error("couldn't create resources", zap.Error(err))
 		return nil, err
 	}
-	if err := s.createRoles(ctx, aoUID, "", req.Roles, tempToUID); err != nil {
+	if err := s.createRoles(ctx, aoUID, req.SystemID, req.EnvironmentName, "", req.Roles, tempToUID); err != nil {
 		logger.Error("couldn't create roles", zap.Error(err))
 		return nil, err
 	}
@@ -59,7 +59,7 @@ func (s *service) Create(ctx context.Context, req *accessobject.CreateRequest) (
 	return result, nil
 }
 
-func (s *service) createResources(ctx context.Context, aoUID string, inputs []accessobject.ResourceInput, tempToUID map[string]string) error {
+func (s *service) createResources(ctx context.Context, aoUID, systemID, envName string, inputs []accessobject.ResourceInput, tempToUID map[string]string) error {
 	type node struct {
 		input    accessobject.ResourceInput
 		children []*node
@@ -96,7 +96,7 @@ func (s *service) createResources(ctx context.Context, aoUID string, inputs []ac
 		}
 
 		r := &domain.Resource{
-			UID:             uuid.New().String(),
+			UID:             uid.New(uid.TypeResource, systemID, envName),
 			AccessObjectUID: aoUID,
 			ParentUID:       parentUID,
 			ResourceType:    n.input.ResourceType,
@@ -128,7 +128,7 @@ func (s *service) createResources(ctx context.Context, aoUID string, inputs []ac
 	return nil
 }
 
-func (s *service) createRoles(ctx context.Context, aoUID, parentRoleUID string, inputs []accessobject.RoleInput, tempToUID map[string]string) error {
+func (s *service) createRoles(ctx context.Context, aoUID, systemID, envName, parentRoleUID string, inputs []accessobject.RoleInput, tempToUID map[string]string) error {
 	for _, inp := range inputs {
 		var resourceUIDs []string
 		for _, tempID := range inp.ResourceTempIDs {
@@ -140,7 +140,7 @@ func (s *service) createRoles(ctx context.Context, aoUID, parentRoleUID string, 
 		}
 
 		r := &domain.Role{
-			UID:             uuid.New().String(),
+			UID:             uid.New(uid.TypeRole, systemID, envName),
 			AccessObjectUID: aoUID,
 			ParentRoleUID:   parentRoleUID,
 			ResourceUIDs:    resourceUIDs,
@@ -156,7 +156,7 @@ func (s *service) createRoles(ctx context.Context, aoUID, parentRoleUID string, 
 			return fmt.Errorf("add role %q: %w", inp.Name, err)
 		}
 
-		if err := s.createRoles(ctx, aoUID, r.UID, inp.Children, tempToUID); err != nil {
+		if err := s.createRoles(ctx, aoUID, systemID, envName, r.UID, inp.Children, tempToUID); err != nil {
 			return err
 		}
 	}
