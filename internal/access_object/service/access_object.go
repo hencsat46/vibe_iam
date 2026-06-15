@@ -41,12 +41,12 @@ func (s *service) Create(ctx context.Context, req *accessobject.CreateRequest) (
 		return nil, err
 	}
 
-	tempToUID := map[string]string{}
-	if err := s.createResources(ctx, aoUID, req.SystemID, req.EnvironmentName, req.Resources, tempToUID); err != nil {
+	nameToUID := map[string]string{}
+	if err := s.createResources(ctx, aoUID, req.SystemID, req.EnvironmentName, req.Resources, nameToUID); err != nil {
 		logger.Error("couldn't create resources", zap.Error(err))
 		return nil, err
 	}
-	if err := s.createRoles(ctx, aoUID, req.SystemID, req.EnvironmentName, "", req.Roles, tempToUID); err != nil {
+	if err := s.createRoles(ctx, aoUID, req.SystemID, req.EnvironmentName, "", req.Roles, nameToUID); err != nil {
 		logger.Error("couldn't create roles", zap.Error(err))
 		return nil, err
 	}
@@ -59,82 +59,52 @@ func (s *service) Create(ctx context.Context, req *accessobject.CreateRequest) (
 	return result, nil
 }
 
-func (s *service) createResources(ctx context.Context, aoUID, systemID, envName string, inputs []accessobject.ResourceInput, tempToUID map[string]string) error {
-	type node struct {
-		input    accessobject.ResourceInput
-		children []*node
-	}
+func (s *service) createResources(ctx context.Context, aoUID, systemID, envName string, inputs []accessobject.ResourceInput, nameToUID map[string]string) error {
+	return s.createResourceNodes(ctx, aoUID, systemID, envName, inputs, "", "", nameToUID)
+}
 
-	nodes := make(map[string]*node, len(inputs))
-	for i := range inputs {
-		inp := inputs[i]
-		nodes[inp.TempID] = &node{input: inp}
-	}
-
-	var roots []*node
-	for i := range inputs {
-		inp := inputs[i]
-		n := nodes[inp.TempID]
-		if inp.ParentTempID == "" {
-			roots = append(roots, n)
-		} else if parent, ok := nodes[inp.ParentTempID]; ok {
-			parent.children = append(parent.children, n)
-		}
-	}
-
-	var createNode func(n *node, parentUID string) error
-	createNode = func(n *node, parentUID string) error {
+func (s *service) createResourceNodes(ctx context.Context, aoUID, systemID, envName string, inputs []accessobject.ResourceInput, parentUID, parentPath string, nameToUID map[string]string) error {
+	for _, inp := range inputs {
 		var path string
-		if parentUID == "" {
-			path = sanitizeLtree(n.input.Name)
+		if parentPath == "" {
+			path = sanitizeLtree(inp.Name)
 		} else {
-			parentPath, err := s.postgres.GetResourcePath(ctx, parentUID)
-			if err != nil {
-				return fmt.Errorf("get parent path: %w", err)
-			}
-			path = parentPath + "." + sanitizeLtree(n.input.Name)
+			path = parentPath + "." + sanitizeLtree(inp.Name)
 		}
 
 		r := &domain.Resource{
 			UID:             uid.New(uid.TypeResource, systemID, envName),
 			AccessObjectUID: aoUID,
 			ParentUID:       parentUID,
-			ResourceType:    n.input.ResourceType,
-			Name:            n.input.Name,
-			DisplayName:     n.input.DisplayName,
-			Description:     n.input.Description,
+			ResourceType:    inp.ResourceType,
+			Name:            inp.Name,
+			DisplayName:     inp.DisplayName,
+			Description:     inp.Description,
 			Path:            path,
-			Attributes:      n.input.Attributes,
+			Attributes:      inp.Attributes,
 		}
 
 		if err := s.postgres.AddResource(ctx, r); err != nil {
-			return fmt.Errorf("add resource %q: %w", n.input.Name, err)
+			return fmt.Errorf("add resource %q: %w", inp.Name, err)
 		}
-		tempToUID[n.input.TempID] = r.UID
 
-		for _, child := range n.children {
-			if err := createNode(child, r.UID); err != nil {
-				return err
-			}
-		}
-		return nil
-	}
+		nameToUID[inp.Name] = r.UID
+		nameToUID[strings.ReplaceAll(path, ".", "/")] = r.UID
 
-	for _, root := range roots {
-		if err := createNode(root, ""); err != nil {
+		if err := s.createResourceNodes(ctx, aoUID, systemID, envName, inp.Children, r.UID, path, nameToUID); err != nil {
 			return err
 		}
 	}
 	return nil
 }
 
-func (s *service) createRoles(ctx context.Context, aoUID, systemID, envName, parentRoleUID string, inputs []accessobject.RoleInput, tempToUID map[string]string) error {
+func (s *service) createRoles(ctx context.Context, aoUID, systemID, envName, parentRoleUID string, inputs []accessobject.RoleInput, nameToUID map[string]string) error {
 	for _, inp := range inputs {
 		var resourceUIDs []string
-		for _, tempID := range inp.ResourceTempIDs {
-			uid, ok := tempToUID[tempID]
+		for _, name := range inp.ResourceNames {
+			uid, ok := nameToUID[name]
 			if !ok {
-				return fmt.Errorf("resource temp_id %q not found", tempID)
+				return fmt.Errorf("resource %q not found", name)
 			}
 			resourceUIDs = append(resourceUIDs, uid)
 		}
@@ -156,7 +126,7 @@ func (s *service) createRoles(ctx context.Context, aoUID, systemID, envName, par
 			return fmt.Errorf("add role %q: %w", inp.Name, err)
 		}
 
-		if err := s.createRoles(ctx, aoUID, systemID, envName, r.UID, inp.Children, tempToUID); err != nil {
+		if err := s.createRoles(ctx, aoUID, systemID, envName, r.UID, inp.Children, nameToUID); err != nil {
 			return err
 		}
 	}

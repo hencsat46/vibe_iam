@@ -522,15 +522,17 @@ func (x *CreateAccessObjectRequest) GetRoles() []*CreateRoleInput {
 	return nil
 }
 
+// Рекурсивная структура: вложенность задаёт parent-child связь.
+// Поле name используется как ключ для ссылок из ролей.
+// При неоднозначности клиент указывает полный путь: "MSK-01/zone-A".
 type CreateResourceInput struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
-	TempId        string                 `protobuf:"bytes,1,opt,name=temp_id,json=tempId,proto3" json:"temp_id,omitempty"`
-	ParentTempId  string                 `protobuf:"bytes,2,opt,name=parent_temp_id,json=parentTempId,proto3" json:"parent_temp_id,omitempty"`
-	ResourceType  string                 `protobuf:"bytes,3,opt,name=resource_type,json=resourceType,proto3" json:"resource_type,omitempty"`
-	Name          string                 `protobuf:"bytes,4,opt,name=name,proto3" json:"name,omitempty"`
-	DisplayName   string                 `protobuf:"bytes,5,opt,name=display_name,json=displayName,proto3" json:"display_name,omitempty"`
-	Description   string                 `protobuf:"bytes,6,opt,name=description,proto3" json:"description,omitempty"`
-	Attributes    map[string]string      `protobuf:"bytes,7,rep,name=attributes,proto3" json:"attributes,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
+	ResourceType  string                 `protobuf:"bytes,1,opt,name=resource_type,json=resourceType,proto3" json:"resource_type,omitempty"`
+	Name          string                 `protobuf:"bytes,2,opt,name=name,proto3" json:"name,omitempty"`
+	DisplayName   string                 `protobuf:"bytes,3,opt,name=display_name,json=displayName,proto3" json:"display_name,omitempty"`
+	Description   string                 `protobuf:"bytes,4,opt,name=description,proto3" json:"description,omitempty"`
+	Attributes    map[string]string      `protobuf:"bytes,5,rep,name=attributes,proto3" json:"attributes,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
+	Children      []*CreateResourceInput `protobuf:"bytes,6,rep,name=children,proto3" json:"children,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -563,20 +565,6 @@ func (x *CreateResourceInput) ProtoReflect() protoreflect.Message {
 // Deprecated: Use CreateResourceInput.ProtoReflect.Descriptor instead.
 func (*CreateResourceInput) Descriptor() ([]byte, []int) {
 	return file_access_object_proto_rawDescGZIP(), []int{5}
-}
-
-func (x *CreateResourceInput) GetTempId() string {
-	if x != nil {
-		return x.TempId
-	}
-	return ""
-}
-
-func (x *CreateResourceInput) GetParentTempId() string {
-	if x != nil {
-		return x.ParentTempId
-	}
-	return ""
 }
 
 func (x *CreateResourceInput) GetResourceType() string {
@@ -614,18 +602,27 @@ func (x *CreateResourceInput) GetAttributes() map[string]string {
 	return nil
 }
 
+func (x *CreateResourceInput) GetChildren() []*CreateResourceInput {
+	if x != nil {
+		return x.Children
+	}
+	return nil
+}
+
+// Ссылки на ресурсы по name (или path при неоднозначности).
+// Сервер резолвит resource_names в uid после создания ресурсов.
 type CreateRoleInput struct {
-	state           protoimpl.MessageState `protogen:"open.v1"`
-	ResourceTempIds []string               `protobuf:"bytes,1,rep,name=resource_temp_ids,json=resourceTempIds,proto3" json:"resource_temp_ids,omitempty"`
-	Name            string                 `protobuf:"bytes,2,opt,name=name,proto3" json:"name,omitempty"`
-	DisplayName     string                 `protobuf:"bytes,3,opt,name=display_name,json=displayName,proto3" json:"display_name,omitempty"`
-	Description     string                 `protobuf:"bytes,4,opt,name=description,proto3" json:"description,omitempty"`
-	Permissions     []string               `protobuf:"bytes,5,rep,name=permissions,proto3" json:"permissions,omitempty"`
-	Attributes      map[string]string      `protobuf:"bytes,6,rep,name=attributes,proto3" json:"attributes,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
-	Labels          *Labels                `protobuf:"bytes,7,opt,name=labels,proto3" json:"labels,omitempty"`
-	Children        []*CreateRoleInput     `protobuf:"bytes,8,rep,name=children,proto3" json:"children,omitempty"`
-	unknownFields   protoimpl.UnknownFields
-	sizeCache       protoimpl.SizeCache
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	ResourceNames []string               `protobuf:"bytes,1,rep,name=resource_names,json=resourceNames,proto3" json:"resource_names,omitempty"`
+	Name          string                 `protobuf:"bytes,2,opt,name=name,proto3" json:"name,omitempty"`
+	DisplayName   string                 `protobuf:"bytes,3,opt,name=display_name,json=displayName,proto3" json:"display_name,omitempty"`
+	Description   string                 `protobuf:"bytes,4,opt,name=description,proto3" json:"description,omitempty"`
+	Permissions   []string               `protobuf:"bytes,5,rep,name=permissions,proto3" json:"permissions,omitempty"`
+	Attributes    map[string]string      `protobuf:"bytes,6,rep,name=attributes,proto3" json:"attributes,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
+	Labels        *Labels                `protobuf:"bytes,7,opt,name=labels,proto3" json:"labels,omitempty"`
+	Children      []*CreateRoleInput     `protobuf:"bytes,8,rep,name=children,proto3" json:"children,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
 }
 
 func (x *CreateRoleInput) Reset() {
@@ -658,9 +655,9 @@ func (*CreateRoleInput) Descriptor() ([]byte, []int) {
 	return file_access_object_proto_rawDescGZIP(), []int{6}
 }
 
-func (x *CreateRoleInput) GetResourceTempIds() []string {
+func (x *CreateRoleInput) GetResourceNames() []string {
 	if x != nil {
-		return x.ResourceTempIds
+		return x.ResourceNames
 	}
 	return nil
 }
@@ -2254,22 +2251,21 @@ const file_access_object_proto_rawDesc = "" +
 	"\x05roles\x18\a \x03(\v2\x17.iam.v1.CreateRoleInputR\x05roles\x1a=\n" +
 	"\x0fAttributesEntry\x12\x10\n" +
 	"\x03key\x18\x01 \x01(\tR\x03key\x12\x14\n" +
-	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01\"\xde\x02\n" +
-	"\x13CreateResourceInput\x12\x17\n" +
-	"\atemp_id\x18\x01 \x01(\tR\x06tempId\x12$\n" +
-	"\x0eparent_temp_id\x18\x02 \x01(\tR\fparentTempId\x12#\n" +
-	"\rresource_type\x18\x03 \x01(\tR\fresourceType\x12\x12\n" +
-	"\x04name\x18\x04 \x01(\tR\x04name\x12!\n" +
-	"\fdisplay_name\x18\x05 \x01(\tR\vdisplayName\x12 \n" +
-	"\vdescription\x18\x06 \x01(\tR\vdescription\x12K\n" +
+	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01\"\xd8\x02\n" +
+	"\x13CreateResourceInput\x12#\n" +
+	"\rresource_type\x18\x01 \x01(\tR\fresourceType\x12\x12\n" +
+	"\x04name\x18\x02 \x01(\tR\x04name\x12!\n" +
+	"\fdisplay_name\x18\x03 \x01(\tR\vdisplayName\x12 \n" +
+	"\vdescription\x18\x04 \x01(\tR\vdescription\x12K\n" +
 	"\n" +
-	"attributes\x18\a \x03(\v2+.iam.v1.CreateResourceInput.AttributesEntryR\n" +
-	"attributes\x1a=\n" +
+	"attributes\x18\x05 \x03(\v2+.iam.v1.CreateResourceInput.AttributesEntryR\n" +
+	"attributes\x127\n" +
+	"\bchildren\x18\x06 \x03(\v2\x1b.iam.v1.CreateResourceInputR\bchildren\x1a=\n" +
 	"\x0fAttributesEntry\x12\x10\n" +
 	"\x03key\x18\x01 \x01(\tR\x03key\x12\x14\n" +
-	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01\"\x9d\x03\n" +
-	"\x0fCreateRoleInput\x12*\n" +
-	"\x11resource_temp_ids\x18\x01 \x03(\tR\x0fresourceTempIds\x12\x12\n" +
+	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01\"\x98\x03\n" +
+	"\x0fCreateRoleInput\x12%\n" +
+	"\x0eresource_names\x18\x01 \x03(\tR\rresourceNames\x12\x12\n" +
 	"\x04name\x18\x02 \x01(\tR\x04name\x12!\n" +
 	"\fdisplay_name\x18\x03 \x01(\tR\vdisplayName\x12 \n" +
 	"\vdescription\x18\x04 \x01(\tR\vdescription\x12 \n" +
@@ -2517,73 +2513,74 @@ var file_access_object_proto_depIdxs = []int32{
 	5,  // 14: iam.v1.CreateAccessObjectRequest.resources:type_name -> iam.v1.CreateResourceInput
 	6,  // 15: iam.v1.CreateAccessObjectRequest.roles:type_name -> iam.v1.CreateRoleInput
 	36, // 16: iam.v1.CreateResourceInput.attributes:type_name -> iam.v1.CreateResourceInput.AttributesEntry
-	37, // 17: iam.v1.CreateRoleInput.attributes:type_name -> iam.v1.CreateRoleInput.AttributesEntry
-	46, // 18: iam.v1.CreateRoleInput.labels:type_name -> iam.v1.Labels
-	6,  // 19: iam.v1.CreateRoleInput.children:type_name -> iam.v1.CreateRoleInput
-	47, // 20: iam.v1.ListAccessObjectsRequest.page:type_name -> iam.v1.PageRequest
-	0,  // 21: iam.v1.ListAccessObjectsResponse.access_objects:type_name -> iam.v1.AccessObject
-	48, // 22: iam.v1.ListAccessObjectsResponse.page:type_name -> iam.v1.PageResponse
-	38, // 23: iam.v1.UpdateEnvironmentRequest.attributes:type_name -> iam.v1.UpdateEnvironmentRequest.AttributesEntry
-	47, // 24: iam.v1.SearchAccessObjectsRequest.page:type_name -> iam.v1.PageRequest
-	0,  // 25: iam.v1.SearchAccessObjectsResponse.access_objects:type_name -> iam.v1.AccessObject
-	48, // 26: iam.v1.SearchAccessObjectsResponse.page:type_name -> iam.v1.PageResponse
-	39, // 27: iam.v1.AddResourceRequest.attributes:type_name -> iam.v1.AddResourceRequest.AttributesEntry
-	47, // 28: iam.v1.ListResourcesRequest.page:type_name -> iam.v1.PageRequest
-	2,  // 29: iam.v1.ListResourcesResponse.resources:type_name -> iam.v1.Resource
-	48, // 30: iam.v1.ListResourcesResponse.page:type_name -> iam.v1.PageResponse
-	40, // 31: iam.v1.UpdateResourceRequest.attributes:type_name -> iam.v1.UpdateResourceRequest.AttributesEntry
-	2,  // 32: iam.v1.GetSubtreeResponse.root:type_name -> iam.v1.Resource
-	2,  // 33: iam.v1.GetSubtreeResponse.children:type_name -> iam.v1.Resource
-	41, // 34: iam.v1.AddRoleRequest.attributes:type_name -> iam.v1.AddRoleRequest.AttributesEntry
-	46, // 35: iam.v1.AddRoleRequest.labels:type_name -> iam.v1.Labels
-	47, // 36: iam.v1.ListRolesRequest.page:type_name -> iam.v1.PageRequest
-	3,  // 37: iam.v1.ListRolesResponse.roles:type_name -> iam.v1.Role
-	48, // 38: iam.v1.ListRolesResponse.page:type_name -> iam.v1.PageResponse
-	42, // 39: iam.v1.UpdateRoleRequest.attributes:type_name -> iam.v1.UpdateRoleRequest.AttributesEntry
-	46, // 40: iam.v1.UpdateRoleRequest.labels:type_name -> iam.v1.Labels
-	43, // 41: iam.v1.AddChildRoleRequest.attributes:type_name -> iam.v1.AddChildRoleRequest.AttributesEntry
-	46, // 42: iam.v1.AddChildRoleRequest.labels:type_name -> iam.v1.Labels
-	4,  // 43: iam.v1.AccessObjectService.CreateAccessObject:input_type -> iam.v1.CreateAccessObjectRequest
-	7,  // 44: iam.v1.AccessObjectService.GetAccessObject:input_type -> iam.v1.GetAccessObjectRequest
-	8,  // 45: iam.v1.AccessObjectService.ListAccessObjects:input_type -> iam.v1.ListAccessObjectsRequest
-	10, // 46: iam.v1.AccessObjectService.UpdateEnvironment:input_type -> iam.v1.UpdateEnvironmentRequest
-	11, // 47: iam.v1.AccessObjectService.DeleteAccessObject:input_type -> iam.v1.DeleteAccessObjectRequest
-	13, // 48: iam.v1.AccessObjectService.SearchAccessObjects:input_type -> iam.v1.SearchAccessObjectsRequest
-	15, // 49: iam.v1.ResourceService.AddResource:input_type -> iam.v1.AddResourceRequest
-	16, // 50: iam.v1.ResourceService.GetResource:input_type -> iam.v1.GetResourceRequest
-	17, // 51: iam.v1.ResourceService.ListResources:input_type -> iam.v1.ListResourcesRequest
-	19, // 52: iam.v1.ResourceService.UpdateResource:input_type -> iam.v1.UpdateResourceRequest
-	20, // 53: iam.v1.ResourceService.RemoveResource:input_type -> iam.v1.RemoveResourceRequest
-	22, // 54: iam.v1.ResourceService.GetSubtree:input_type -> iam.v1.GetSubtreeRequest
-	24, // 55: iam.v1.RoleService.AddRole:input_type -> iam.v1.AddRoleRequest
-	25, // 56: iam.v1.RoleService.GetRole:input_type -> iam.v1.GetRoleRequest
-	26, // 57: iam.v1.RoleService.ListRoles:input_type -> iam.v1.ListRolesRequest
-	28, // 58: iam.v1.RoleService.UpdateRole:input_type -> iam.v1.UpdateRoleRequest
-	29, // 59: iam.v1.RoleService.RemoveRole:input_type -> iam.v1.RemoveRoleRequest
-	31, // 60: iam.v1.RoleService.AddChildRole:input_type -> iam.v1.AddChildRoleRequest
-	0,  // 61: iam.v1.AccessObjectService.CreateAccessObject:output_type -> iam.v1.AccessObject
-	0,  // 62: iam.v1.AccessObjectService.GetAccessObject:output_type -> iam.v1.AccessObject
-	9,  // 63: iam.v1.AccessObjectService.ListAccessObjects:output_type -> iam.v1.ListAccessObjectsResponse
-	0,  // 64: iam.v1.AccessObjectService.UpdateEnvironment:output_type -> iam.v1.AccessObject
-	12, // 65: iam.v1.AccessObjectService.DeleteAccessObject:output_type -> iam.v1.DeleteAccessObjectResponse
-	14, // 66: iam.v1.AccessObjectService.SearchAccessObjects:output_type -> iam.v1.SearchAccessObjectsResponse
-	2,  // 67: iam.v1.ResourceService.AddResource:output_type -> iam.v1.Resource
-	2,  // 68: iam.v1.ResourceService.GetResource:output_type -> iam.v1.Resource
-	18, // 69: iam.v1.ResourceService.ListResources:output_type -> iam.v1.ListResourcesResponse
-	2,  // 70: iam.v1.ResourceService.UpdateResource:output_type -> iam.v1.Resource
-	21, // 71: iam.v1.ResourceService.RemoveResource:output_type -> iam.v1.RemoveResourceResponse
-	23, // 72: iam.v1.ResourceService.GetSubtree:output_type -> iam.v1.GetSubtreeResponse
-	3,  // 73: iam.v1.RoleService.AddRole:output_type -> iam.v1.Role
-	3,  // 74: iam.v1.RoleService.GetRole:output_type -> iam.v1.Role
-	27, // 75: iam.v1.RoleService.ListRoles:output_type -> iam.v1.ListRolesResponse
-	3,  // 76: iam.v1.RoleService.UpdateRole:output_type -> iam.v1.Role
-	30, // 77: iam.v1.RoleService.RemoveRole:output_type -> iam.v1.RemoveRoleResponse
-	3,  // 78: iam.v1.RoleService.AddChildRole:output_type -> iam.v1.Role
-	61, // [61:79] is the sub-list for method output_type
-	43, // [43:61] is the sub-list for method input_type
-	43, // [43:43] is the sub-list for extension type_name
-	43, // [43:43] is the sub-list for extension extendee
-	0,  // [0:43] is the sub-list for field type_name
+	5,  // 17: iam.v1.CreateResourceInput.children:type_name -> iam.v1.CreateResourceInput
+	37, // 18: iam.v1.CreateRoleInput.attributes:type_name -> iam.v1.CreateRoleInput.AttributesEntry
+	46, // 19: iam.v1.CreateRoleInput.labels:type_name -> iam.v1.Labels
+	6,  // 20: iam.v1.CreateRoleInput.children:type_name -> iam.v1.CreateRoleInput
+	47, // 21: iam.v1.ListAccessObjectsRequest.page:type_name -> iam.v1.PageRequest
+	0,  // 22: iam.v1.ListAccessObjectsResponse.access_objects:type_name -> iam.v1.AccessObject
+	48, // 23: iam.v1.ListAccessObjectsResponse.page:type_name -> iam.v1.PageResponse
+	38, // 24: iam.v1.UpdateEnvironmentRequest.attributes:type_name -> iam.v1.UpdateEnvironmentRequest.AttributesEntry
+	47, // 25: iam.v1.SearchAccessObjectsRequest.page:type_name -> iam.v1.PageRequest
+	0,  // 26: iam.v1.SearchAccessObjectsResponse.access_objects:type_name -> iam.v1.AccessObject
+	48, // 27: iam.v1.SearchAccessObjectsResponse.page:type_name -> iam.v1.PageResponse
+	39, // 28: iam.v1.AddResourceRequest.attributes:type_name -> iam.v1.AddResourceRequest.AttributesEntry
+	47, // 29: iam.v1.ListResourcesRequest.page:type_name -> iam.v1.PageRequest
+	2,  // 30: iam.v1.ListResourcesResponse.resources:type_name -> iam.v1.Resource
+	48, // 31: iam.v1.ListResourcesResponse.page:type_name -> iam.v1.PageResponse
+	40, // 32: iam.v1.UpdateResourceRequest.attributes:type_name -> iam.v1.UpdateResourceRequest.AttributesEntry
+	2,  // 33: iam.v1.GetSubtreeResponse.root:type_name -> iam.v1.Resource
+	2,  // 34: iam.v1.GetSubtreeResponse.children:type_name -> iam.v1.Resource
+	41, // 35: iam.v1.AddRoleRequest.attributes:type_name -> iam.v1.AddRoleRequest.AttributesEntry
+	46, // 36: iam.v1.AddRoleRequest.labels:type_name -> iam.v1.Labels
+	47, // 37: iam.v1.ListRolesRequest.page:type_name -> iam.v1.PageRequest
+	3,  // 38: iam.v1.ListRolesResponse.roles:type_name -> iam.v1.Role
+	48, // 39: iam.v1.ListRolesResponse.page:type_name -> iam.v1.PageResponse
+	42, // 40: iam.v1.UpdateRoleRequest.attributes:type_name -> iam.v1.UpdateRoleRequest.AttributesEntry
+	46, // 41: iam.v1.UpdateRoleRequest.labels:type_name -> iam.v1.Labels
+	43, // 42: iam.v1.AddChildRoleRequest.attributes:type_name -> iam.v1.AddChildRoleRequest.AttributesEntry
+	46, // 43: iam.v1.AddChildRoleRequest.labels:type_name -> iam.v1.Labels
+	4,  // 44: iam.v1.AccessObjectService.CreateAccessObject:input_type -> iam.v1.CreateAccessObjectRequest
+	7,  // 45: iam.v1.AccessObjectService.GetAccessObject:input_type -> iam.v1.GetAccessObjectRequest
+	8,  // 46: iam.v1.AccessObjectService.ListAccessObjects:input_type -> iam.v1.ListAccessObjectsRequest
+	10, // 47: iam.v1.AccessObjectService.UpdateEnvironment:input_type -> iam.v1.UpdateEnvironmentRequest
+	11, // 48: iam.v1.AccessObjectService.DeleteAccessObject:input_type -> iam.v1.DeleteAccessObjectRequest
+	13, // 49: iam.v1.AccessObjectService.SearchAccessObjects:input_type -> iam.v1.SearchAccessObjectsRequest
+	15, // 50: iam.v1.ResourceService.AddResource:input_type -> iam.v1.AddResourceRequest
+	16, // 51: iam.v1.ResourceService.GetResource:input_type -> iam.v1.GetResourceRequest
+	17, // 52: iam.v1.ResourceService.ListResources:input_type -> iam.v1.ListResourcesRequest
+	19, // 53: iam.v1.ResourceService.UpdateResource:input_type -> iam.v1.UpdateResourceRequest
+	20, // 54: iam.v1.ResourceService.RemoveResource:input_type -> iam.v1.RemoveResourceRequest
+	22, // 55: iam.v1.ResourceService.GetSubtree:input_type -> iam.v1.GetSubtreeRequest
+	24, // 56: iam.v1.RoleService.AddRole:input_type -> iam.v1.AddRoleRequest
+	25, // 57: iam.v1.RoleService.GetRole:input_type -> iam.v1.GetRoleRequest
+	26, // 58: iam.v1.RoleService.ListRoles:input_type -> iam.v1.ListRolesRequest
+	28, // 59: iam.v1.RoleService.UpdateRole:input_type -> iam.v1.UpdateRoleRequest
+	29, // 60: iam.v1.RoleService.RemoveRole:input_type -> iam.v1.RemoveRoleRequest
+	31, // 61: iam.v1.RoleService.AddChildRole:input_type -> iam.v1.AddChildRoleRequest
+	0,  // 62: iam.v1.AccessObjectService.CreateAccessObject:output_type -> iam.v1.AccessObject
+	0,  // 63: iam.v1.AccessObjectService.GetAccessObject:output_type -> iam.v1.AccessObject
+	9,  // 64: iam.v1.AccessObjectService.ListAccessObjects:output_type -> iam.v1.ListAccessObjectsResponse
+	0,  // 65: iam.v1.AccessObjectService.UpdateEnvironment:output_type -> iam.v1.AccessObject
+	12, // 66: iam.v1.AccessObjectService.DeleteAccessObject:output_type -> iam.v1.DeleteAccessObjectResponse
+	14, // 67: iam.v1.AccessObjectService.SearchAccessObjects:output_type -> iam.v1.SearchAccessObjectsResponse
+	2,  // 68: iam.v1.ResourceService.AddResource:output_type -> iam.v1.Resource
+	2,  // 69: iam.v1.ResourceService.GetResource:output_type -> iam.v1.Resource
+	18, // 70: iam.v1.ResourceService.ListResources:output_type -> iam.v1.ListResourcesResponse
+	2,  // 71: iam.v1.ResourceService.UpdateResource:output_type -> iam.v1.Resource
+	21, // 72: iam.v1.ResourceService.RemoveResource:output_type -> iam.v1.RemoveResourceResponse
+	23, // 73: iam.v1.ResourceService.GetSubtree:output_type -> iam.v1.GetSubtreeResponse
+	3,  // 74: iam.v1.RoleService.AddRole:output_type -> iam.v1.Role
+	3,  // 75: iam.v1.RoleService.GetRole:output_type -> iam.v1.Role
+	27, // 76: iam.v1.RoleService.ListRoles:output_type -> iam.v1.ListRolesResponse
+	3,  // 77: iam.v1.RoleService.UpdateRole:output_type -> iam.v1.Role
+	30, // 78: iam.v1.RoleService.RemoveRole:output_type -> iam.v1.RemoveRoleResponse
+	3,  // 79: iam.v1.RoleService.AddChildRole:output_type -> iam.v1.Role
+	62, // [62:80] is the sub-list for method output_type
+	44, // [44:62] is the sub-list for method input_type
+	44, // [44:44] is the sub-list for extension type_name
+	44, // [44:44] is the sub-list for extension extendee
+	0,  // [0:44] is the sub-list for field type_name
 }
 
 func init() { file_access_object_proto_init() }

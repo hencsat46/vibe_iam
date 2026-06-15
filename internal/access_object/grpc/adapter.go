@@ -30,13 +30,12 @@ func toResourceInputs(inputs []*pb.CreateResourceInput) []accessobject.ResourceI
 	result := make([]accessobject.ResourceInput, len(inputs))
 	for i, inp := range inputs {
 		result[i] = accessobject.ResourceInput{
-			TempID:       inp.TempId,
-			ParentTempID: inp.ParentTempId,
 			ResourceType: inp.ResourceType,
 			Name:         inp.Name,
 			DisplayName:  inp.DisplayName,
 			Description:  inp.Description,
 			Attributes:   inp.Attributes,
+			Children:     toResourceInputs(inp.Children),
 		}
 	}
 	return result
@@ -46,14 +45,14 @@ func toRoleInputs(inputs []*pb.CreateRoleInput) []accessobject.RoleInput {
 	result := make([]accessobject.RoleInput, len(inputs))
 	for i, inp := range inputs {
 		result[i] = accessobject.RoleInput{
-			ResourceTempIDs: inp.ResourceTempIds,
-			Name:            inp.Name,
-			DisplayName:     inp.DisplayName,
-			Description:     inp.Description,
-			Permissions:     inp.Permissions,
-			Attributes:      inp.Attributes,
-			Labels:          toLabels(inp.Labels),
-			Children:        toRoleInputs(inp.Children),
+			ResourceNames: inp.ResourceNames,
+			Name:          inp.Name,
+			DisplayName:   inp.DisplayName,
+			Description:   inp.Description,
+			Permissions:   inp.Permissions,
+			Attributes:    inp.Attributes,
+			Labels:        toLabels(inp.Labels),
+			Children:      toRoleInputs(inp.Children),
 		}
 	}
 	return result

@@ -113,18 +113,22 @@ message CreateAccessObjectRequest {
   repeated CreateRoleInput     roles              = 7;
 }
 
+// Рекурсивная структура: вложенность задаёт parent-child связь.
+// Поле name используется как ключ для ссылок из ролей.
+// При неоднозначности клиент указывает полный путь: "MSK-01/zone-A".
 message CreateResourceInput {
-  string                       temp_id         = 1;
-  string                       parent_temp_id  = 2;
-  string                       resource_type   = 3;
-  string                       name            = 4;
-  string                       display_name    = 5;
-  string                       description     = 6;
-  map<string, string>          attributes      = 7;
+  string                       resource_type   = 1;
+  string                       name            = 2;
+  string                       display_name    = 3;
+  string                       description     = 4;
+  map<string, string>          attributes      = 5;
+  repeated CreateResourceInput children        = 6;
 }
 
+// Ссылки на ресурсы по name (или path при неоднозначности).
+// Сервер резолвит resource_names в uid после создания ресурсов.
 message CreateRoleInput {
-  repeated string              resource_temp_ids = 1;
+  repeated string              resource_names    = 1;
   string                       name              = 2;
   string                       display_name      = 3;
   string                       description       = 4;
